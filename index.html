@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Monaco Lua Editor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #cccccc;
+            background-color: #312A5A;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .title-bar {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            background-color: #3c3c3c;
+            color: #cccccc;
+            border-bottom: 1px solid #252525;
+        }
+        
+        .menu-bar {
+            height: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            background-color: #333333;
+            color: #cccccc;
+            border-bottom: 1px solid #252525;
+        }
+        
+        .menu-item {
+            padding: 0 8px;
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            color: #ffffff;
+        }
+        
+        .tab-container {
+            height: 36px;
+            display: flex;
+            background-color: #252526;
+            border-bottom: 1px solid #1e1e1e;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .tab {
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            height: 35px;
+            cursor: pointer;
+            background-color: #2d2d2d;
+            border-right: 1px solid #1e1e1e;
+            min-width: 120px;
+            max-width: 200px;
+            position: relative;
+        }
+        
+        .tab.active {
+            background-color: #1e1e1e;
+            border-top: 1px solid #1c6fb0;
+        }
+        
+        .tab-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        
+        .tab-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .tab-close {
+            margin-left: 5px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+        }
+        
+        .tab-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100% - 98px);
+        }
+        
+        .sidebar {
+            width: 50px;
+            background-color: #333333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+        }
+        
+        .sidebar-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #858585;
+        }
+        
+        .sidebar-icon:hover {
+            color: #ffffff;
+        }
+        
+        .sidebar-icon.active {
+            color: #ffffff;
+            border-left: 2px solid #007acc;
+        }
+        
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        #container {
+            flex: 1;
+            position: relative;
+        }
+        
+        .monaco-editor {
+            height: 100%;
+        }
+        
+        .status-bar {
+            height: 22px;
+            background-color: #007acc;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 12px;
+        }
+        
+        .status-item {
+            margin-right: 15px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .new-file-btn {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 35px;
+            cursor: pointer;
+        }
+        
+        .new-file-btn:hover {
+            background-color: #3c3c3c;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="title-bar">
+            Advanced Monaco Lua Editor
+        </div>
+        <div class="menu-bar">
+            <div class="menu-item">File</div>
+            <div class="menu-item">Edit</div>
+            <div class="menu-item">View</div>
+            <div class="menu-item">Help</div>
+        </div>
+        <div class="tab-container" id="tabContainer">
+            <div class="tab active" data-id="main.lua">
+                <div class="tab-content">
+                    <div class="tab-name">main.lua</div>
+                    <div class="tab-close">×</div>
+                </div>
+            </div>
+            <div class="new-file-btn" id="newFileBtn">+</div>
+        </div>
+        <div class="main-container">
+            <div class="sidebar">
+                <div class="sidebar-icon active" title="Explorer">
+                    <i class="far fa-file-code"></i>
+                </div>
+                <div class="sidebar-icon" title="Search">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="sidebar-icon" title="Source Control">
+                    <i class="fas fa-code-branch"></i>
+                </div>
+                <div class="sidebar-icon" title="Run">
+                    <i class="fas fa-play"></i>
+                </div>
+            </div>
+            <div class="editor-area">
+                <div id="container"></div>
+            </div>
+        </div>
+        <div class="status-bar">
+            <span class="status-item">Lua</span>
+            <span class="status-item">UTF-8</span>
+            <span class="status-item">LF</span>
+            <span class="status-item">Line: 1, Col: 1</span>
+        </div>
+    </div>
+
+    <!-- Load Monaco -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+
+    <script>
+        // Monaco loader configuration
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        
+        // Tabs and file system
+        let files = {
+            'main.lua': '-- Welcome to Advanced Monaco Lua Editor\n\nlocal function hello(name)\n    print("Hello, " .. name .. "!")\nend\n\nhello("World")\n'
+        };
+        
+        let currentFile = 'main.lua';
+        let nextFileId = 1;
+        let editors = {};
+        let editorInstance;
+        
+        // Create the Monaco editor
+        require(['vs/editor/editor.main'], function() {
+            // Register Lua language
+            monaco.languages.register({ id: 'lua' });
+            
+            // Basic Lua syntax highlighting
+            monaco.languages.setMonarchTokensProvider('lua', {
+                defaultToken: '',
+                tokenPostfix: '.lua',
+                
+                keywords: [
+                    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 
+                    'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 
+                    'return', 'then', 'true', 'until', 'while'
+                ],
+                
+                brackets: [
+                    { open: '{', close: '}', token: 'delimiter.curly' },
+                    { open: '[', close: ']', token: 'delimiter.square' },
+                    { open: '(', close: ')', token: 'delimiter.parenthesis' }
+                ],
+                
+                operators: [
+                    '+', '-', '*', '/', '%', '^', '#', '==', '~=', '<=', '>=', '<', '>', '=',
+                    ';', ':', ',', '.', '..', '...'
+                ],
+                
+                // we include these common regular expressions
+                symbols: /[=><!~?:&|+\-*\/\^%]+/,
+                
+                // The main tokenizer for our languages
+                tokenizer: {
+                    root: [
+                        // identifiers and keywords
+                        [/[a-zA-Z_]\w*/, { cases: { '@keywords': 'keyword', '@default': 'identifier' } }],
+                        
+                        // whitespace
+                        { include: '@whitespace' },
+                        
+                        // delimiters and operators
+                        [/[{}()\[\]]/, '@brackets'],
+                        [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
+                        
+                        // numbers
+                        [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                        [/\d+/, 'number'],
+                        
+                        // delimiter: after number because of .\d floats
+                        [/[;,.]/, 'delimiter'],
+                        
+                        // strings
+                        [/"([^"\\]|\\.)*$/, 'string.invalid'],  // non-terminated string
+                        [/'([^'\\]|\\.)*$/, 'string.invalid'],  // non-terminated string
+                        [/"/, 'string', '@string_double'],
+                        [/'/, 'string', '@string_single'],
+                        [/\[(=*)\[/, 'string', '@string_multiline']
+                    ],
+                    
+                    whitespace: [
+                        [/[ \t\r\n]+/, 'white'],
+                        [/--\[=*\[/, 'comment', '@comment_multiline'],
+                        [/--.*$/, 'comment']
+                    ],
+                    
+                    string_double: [
+                        [/[^\\"]+/, 'string'],
+                        [/\\./, 'string.escape'],
+                        [/"/, 'string', '@pop']
+                    ],
+                    
+                    string_single: [
+                        [/[^\\']+/, 'string'],
+                        [/\\./, 'string.escape'],
+                        [/'/, 'string', '@pop']
+                    ],
+                    
+                    string_multiline: [
+                        [/\](=*)\]/, { cases: { '$1==$S2': { token: 'string', next: '@pop' }, '@default': 'string' } }],
+                        [/./, 'string']
+                    ],
+                    
+                    comment_multiline: [
+                        [/\]+=*\]/, 'comment', '@pop'],
+                        [/./, 'comment']
+                    ]
+                }
+            });
+            
+            // Theme configuration
+            monaco.editor.defineTheme('vs-dark-plus', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [
+                    { token: 'comment', foreground: '608b4e' },
+                    { token: 'keyword', foreground: '569cd6' },
+                    { token: 'string', foreground: 'ce9178' },
+                    { token: 'number', foreground: 'b5cea8' },
+                    { token: 'operator', foreground: 'd4d4d4' }
+                ],
+                colors: {
+                    'editor.background': '#292339',
+                    'editor.foreground': '#d4d4d4',
+                    'editorLineNumber.foreground': '#ffffff',
+                    'editorCursor.foreground': '#d4d4d4',
+                    'editor.selectionBackground': '#264f78',
+                    'editor.inactiveSelectionBackground': '#3a3d41',
+                    'editorWhitespace.foreground': '#3B3A32'
+                }
+            });
+            
+            // Create editor
+            editorInstance = monaco.editor.create(document.getElementById('container'), {
+                value: files[currentFile],
+                language: 'lua',
+                theme: 'vs-dark-plus',
+                automaticLayout: true,
+                minimap: {
+                    enabled: true
+                },
+                scrollBeyondLastLine: false,
+                renderLineHighlight: 'all',
+                fontFamily: 'Consolas, "Courier New", monospace',
+                fontSize: 14,
+                lineNumbers: 'on',
+                renderIndentGuides: true,
+                folding: true,
+                glyphMargin: true,
+                tabSize: 4,
+                insertSpaces: true
+            });
+
+            editors[currentFile] = editorInstance;
+            
+            // Update cursor position in status bar
+            editorInstance.onDidChangeCursorPosition(function(e) {
+                const position = editorInstance.getPosition();
+                document.querySelector('.status-bar .status-item:nth-child(4)').textContent = `Line: ${position.lineNumber}, Col: ${position.column}`;
+            });
+            
+            // Auto-save content
+            editorInstance.onDidChangeModelContent(function(e) {
+                files[currentFile] = editorInstance.getValue();
+            });
+            
+            // Window resize handling
+            window.addEventListener('resize', function() {
+                editorInstance.layout();
+            });
+        });
+        
+        // Tab management
+        document.getElementById('tabContainer').addEventListener('click', function(e) {
+            if (e.target.classList.contains('tab-close')) {
+                const tab = e.target.closest('.tab');
+                const tabId = tab.getAttribute('data-id');
+                
+                // Don't close if it's the last tab
+                const tabs = document.querySelectorAll('.tab');
+                if (tabs.length <= 1) return;
+                
+                // Remove the tab
+                tab.remove();
+                delete files[tabId];
+                
+                // If closing the active tab, switch to another tab
+                if (currentFile === tabId) {
+                    const newTab = document.querySelector('.tab');
+                    if (newTab) {
+                        const newTabId = newTab.getAttribute('data-id');
+                        newTab.classList.add('active');
+                        currentFile = newTabId;
+                        
+                        // Update editor content
+                        editorInstance.setValue(files[newTabId]);
+                    }
+                }
+            } else if (e.target.closest('.tab')) {
+                const tab = e.target.closest('.tab');
+                const tabId = tab.getAttribute('data-id');
+                
+                // Don't do anything if clicking the already active tab
+                if (currentFile === tabId) return;
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Save current editor content
+                files[currentFile] = editorInstance.getValue();
+                
+                // Update current file and editor content
+                currentFile = tabId;
+                editorInstance.setValue(files[tabId]);
+            }
+        });
+        
+        // New file button
+        document.getElementById('newFileBtn').addEventListener('click', function() {
+            const fileName = `untitled-${nextFileId++}.lua`;
+            files[fileName] = '-- New Lua file\n\n';
+            
+            // Create new tab
+            const tabContainer = document.getElementById('tabContainer');
+            const newTab = document.createElement('div');
+            newTab.className = 'tab';
+            newTab.setAttribute('data-id', fileName);
+            newTab.innerHTML = `
+                <div class="tab-content">
+                    <div class="tab-name">${fileName}</div>
+                    <div class="tab-close">×</div>
+                </div>
+            `;
+            
+            // Add tab before the new file button
+            tabContainer.insertBefore(newTab, this);
+            
+            // Switch to new tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            newTab.classList.add('active');
+            
+            // Save current editor content
+            files[currentFile] = editorInstance.getValue();
+            
+            // Update current file and editor content
+            currentFile = fileName;
+            editorInstance.setValue(files[fileName]);
+        });
+
+        // Add this right after your existing event listeners
+
+// File menu click handler
+document.querySelector('.menu-item:nth-child(1)').addEventListener('click', function() {
+    // Create a hidden file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.lua,.txt';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    
+    // Trigger the file selection dialog
+    fileInput.click();
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = file.name;
+            
+            // Check if file is already open
+            if (files[fileName]) {
+                // Switch to existing tab
+                const existingTab = document.querySelector(`.tab[data-id="${fileName}"]`);
+                if (existingTab) {
+                    existingTab.click();
+                }
+            } else {
+                // Create new tab with the file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Store file content
+                    const content = e.target.result;
+                    files[fileName] = content;
+                    
+                    // Create tab
+                    const tabContainer = document.getElementById('tabContainer');
+                    const newTab = document.createElement('div');
+                    newTab.className = 'tab';
+                    newTab.setAttribute('data-id', fileName);
+                    newTab.innerHTML = `
+                        <div class="tab-content">
+                            <div class="tab-name">${fileName}</div>
+                            <div class="tab-close">×</div>
+                        </div>
+                    `;
+                    
+                    // Add tab before the new file button
+                    tabContainer.insertBefore(newTab, document.getElementById('newFileBtn'));
+                    
+                    // Switch to new tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    newTab.classList.add('active');
+                    
+                    // Save current editor content
+                    files[currentFile] = editorInstance.getValue();
+                    
+                    // Update current file and editor content
+                    currentFile = fileName;
+                    editorInstance.setValue(content);
+                };
+                reader.readAsText(file);
+            }
+        }
+        
+        // Clean up
+        document.body.removeChild(fileInput);
+    });
+});
+    </script>
+</body>
+</html>
